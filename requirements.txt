@@ -1,0 +1,18 @@
+# TRACE artifact — Python 3.8 (tested on 3.8.10).
+# Core retrieval / reranking / baselines / benchmarks.
+numpy==1.24.4
+torch==2.1.0          # tested with the +cu121 CUDA 12.1 build
+transformers==4.42.3
+tqdm==4.66.4
+matplotlib==3.7.5
+
+# GPU FAISS is required: Stage-A candidate generation and the huge-pool
+# runtime upload both use faiss-gpu. Install via conda:
+#   conda install -c pytorch faiss-gpu=1.7.2
+# (pip has no official faiss-gpu wheel; faiss-cpu==1.7.2 works but is far
+#  slower on the 1M CVE pool.)
+# faiss-gpu==1.7.2
+
+# Optional — only for the LLM verifier (RQ4 --llm-verify). Not needed for
+# RQ1/RQ2/RQ3 or base/anchor RQ4.
+openai>=1.0            # tested with 2.2.0; needs a DeepSeek-compatible endpoint
