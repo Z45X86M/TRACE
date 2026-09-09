@@ -37,35 +37,43 @@ The datasets and the multi-vector pools/embeddings are hosted on Hugging Face:
 
 > **https://huggingface.co/datasets/ICSE2027/TRACE**
 
-Four bundles are published there. Download only what a given RQ needs:
+Bundles published there — download only what a given RQ needs. The two large
+artifact bundles are **split into 4 GB `.partNN` chunks** (a flaky link made a
+single 30 GB upload impossible); reassemble them with `cat` before unpacking.
 
 | bundle | size | contents | needed for |
 | --- | --- | --- | --- |
 | `TRACE-code.tar.gz` | 125 KB | this code tree (same as the repo) | — |
 | `TRACE-data.tar.gz` | 156 MB | `data/cve75/` (the inlined-CVE dataset) | dataset / verifiers |
-| `TRACE-artifacts-inline.tar` | 34 GB | `artifacts/doi1/` + `artifacts/faiss/` | RQ1, RQ2, RQ3 |
-| `TRACE-artifacts-cve.tar` | 31 GB | `artifacts/doi2/` (1M CVE pool runtime) | RQ4 |
+| `TRACE-artifacts-inline.tar.part00..08` | 34 GB (9 chunks) | `artifacts/doi1/` + `artifacts/faiss/` | RQ1, RQ2, RQ3 |
+| `TRACE-artifacts-cve.tar.part00..07` | 31 GB (8 chunks) | `artifacts/doi2/` (1M CVE pool runtime) | RQ4 |
 
-Download with the `huggingface_hub` CLI (`pip install -U huggingface_hub`), then
-unpack **from the repository root** so the paths land in place:
+Download with the `huggingface_hub` CLI (`pip install -U huggingface_hub`). Grab
+whole bundles by prefix with `--include`, `cat` the chunks back into the `.tar`,
+then unpack **from the repository root** so the paths land in place:
 
 ```bash
 REPO=ICSE2027/TRACE
-# dataset (needed by the anchor / LLM verifiers)
-huggingface-cli download $REPO TRACE-data.tar.gz          --repo-type dataset --local-dir .
-tar xf TRACE-data.tar.gz            # -> data/cve75/
+DL="huggingface-cli download $REPO --repo-type dataset --local-dir ."
 
-# RQ1 / RQ2 / RQ3 artifacts
-huggingface-cli download $REPO TRACE-artifacts-inline.tar --repo-type dataset --local-dir .
-tar xf TRACE-artifacts-inline.tar   # -> artifacts/doi1/ , artifacts/faiss/
+# dataset (needed by the anchor / LLM verifiers) — single file
+$DL TRACE-data.tar.gz
+tar xf TRACE-data.tar.gz                                  # -> data/cve75/
 
-# RQ4 artifacts
-huggingface-cli download $REPO TRACE-artifacts-cve.tar    --repo-type dataset --local-dir .
-tar xf TRACE-artifacts-cve.tar      # -> artifacts/doi2/
+# RQ1 / RQ2 / RQ3 artifacts — 9 chunks -> one tar
+$DL --include "TRACE-artifacts-inline.tar.part*"
+cat TRACE-artifacts-inline.tar.part* > TRACE-artifacts-inline.tar
+tar xf TRACE-artifacts-inline.tar                         # -> artifacts/doi1/ , artifacts/faiss/
+
+# RQ4 artifacts — 8 chunks -> one tar
+$DL --include "TRACE-artifacts-cve.tar.part*"
+cat TRACE-artifacts-cve.tar.part* > TRACE-artifacts-cve.tar
+tar xf TRACE-artifacts-cve.tar                            # -> artifacts/doi2/
 ```
 
-After unpacking, `artifacts/` and `data/cve75/` sit next to `src/`, and every
-command below runs as written.
+`cat …part*` concatenates the chunks in lexical order (part00, part01, …),
+which is the correct order. After unpacking, `artifacts/` and `data/cve75/` sit
+next to `src/`, and every command below runs as written.
 
 Setup: Python 3.8. Install deps (`pip install -r requirements.txt`, plus
 `conda install -c pytorch faiss-gpu=1.7.2`), then:
